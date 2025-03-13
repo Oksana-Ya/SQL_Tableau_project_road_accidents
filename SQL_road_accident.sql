@@ -30,7 +30,6 @@ ORDER BY total_accidents DESC
 
 
 
-
 --Explore how many accidents were in each year
 SELECT YEAR([Accident_Date]) AS date_year, COUNT(*) AS accidents
 FROM accidents.dbo.road_data
