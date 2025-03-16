@@ -1,20 +1,21 @@
---Show total number of accidents
+-- Show total number of accidents
 SELECT COUNT(accident_index) AS total_accidents
-FROM accidents.dbo.road_data
+FROM accidents.dbo.road_data;
 
 
---Show total number of casualties
+-- Show total number of casualties
 SELECT SUM(number_of_casualties) AS total_casualties
-FROM accidents.dbo.road_data
+FROM accidents.dbo.road_data;
 
---Count average number of casualties and average numver of cars involved in accidents
+
+-- Count average number of casualties and average number of cars involved in accidents
 SELECT 
-    ROUND(AVG(Number_of_Casualties), 3) AS Avg_Casualties, 
-    ROUND(AVG(Number_of_Vehicles), 3) AS Avg_Vehicles
-FROM accidents.dbo.road_data
+    ROUND(AVG(number_of_casualties)::numeric, 3) AS avg_casualties, 
+    ROUND(AVG(number_of_vehicles)::numeric, 3) AS avg_vehicles
+FROM accidents.dbo.road_data;
 
 
--- Categorize accidents based on the severity and sort by the total number of accidents for each category in descending order
+-- Categorize accidents based on severity and sort by the total number of accidents for each category in descending order
 SELECT
     accident_severity,
     CASE
@@ -26,56 +27,53 @@ SELECT
     COUNT(*) AS total_accidents
 FROM accidents.dbo.road_data
 GROUP BY accident_severity
-ORDER BY total_accidents DESC
+ORDER BY total_accidents DESC;
 
 
-
---Explore how many accidents were in each year
-SELECT YEAR([Accident_Date]) AS date_year, COUNT(*) AS accidents
+-- Explore how many accidents occurred in each year
+SELECT EXTRACT(YEAR FROM accident_date)::INT AS accident_year, COUNT(*) AS total_accidents
 FROM accidents.dbo.road_data
-GROUP BY YEAR(Accident_Date)
+GROUP BY accident_year
+ORDER BY accident_year;
 
---See the difference of number of accidents in year 2021 and 2022 in percentage
+
+-- See the difference in the number of accidents between 2021 and 2022 in percentage
 SELECT
-    SUM(CASE WHEN YEAR(accident_date) = 2021 THEN 1 ELSE 0 END) AS count_2021,
-    SUM(CASE WHEN YEAR(accident_date) = 2022 THEN 1 ELSE 0 END) AS count_2022,
-    ((SUM(CASE WHEN YEAR(accident_date) = 2022 THEN 1 ELSE 0 END) - SUM(CASE WHEN YEAR(accident_date) = 2021 THEN 1 ELSE 0 END)) * 100.0 / NULLIF(SUM(CASE WHEN YEAR(accident_date) = 2021 THEN 1 ELSE 0 END), 0)) AS percentage_difference
+    COUNT(*) FILTER (WHERE EXTRACT(YEAR FROM accident_date) = 2021) AS count_2021,
+    COUNT(*) FILTER (WHERE EXTRACT(YEAR FROM accident_date) = 2022) AS count_2022,
+    ((COUNT(*) FILTER (WHERE EXTRACT(YEAR FROM accident_date) = 2022) - 
+      COUNT(*) FILTER (WHERE EXTRACT(YEAR FROM accident_date) = 2021)) * 100.0 /
+     NULLIF(COUNT(*) FILTER (WHERE EXTRACT(YEAR FROM accident_date) = 2021), 0)) AS percentage_difference
 FROM accidents.dbo.road_data
-WHERE YEAR(accident_date) IN (2021, 2022);
+WHERE EXTRACT(YEAR FROM accident_date) IN (2021, 2022);
 
 
---Total number of accidents per each day of the week
+-- Total number of accidents per each day of the week
 SELECT day_of_week, COUNT(*) AS total_accidents
 FROM accidents.dbo.road_data
 GROUP BY day_of_week
-ORDER BY total_accidents DESC
+ORDER BY total_accidents DESC;
 
 
-
---Show the most common road surface conditions for accidents involving more than 5 vehicles
-SELECT Road_Surface_Conditions, COUNT(*) AS Total_Accidents
+-- Show the most common road surface conditions for accidents involving more than 5 vehicles
+SELECT road_surface_conditions, COUNT(*) AS total_accidents
 FROM accidents.dbo.road_data
-WHERE Number_of_Vehicles > 5
-GROUP BY Road_Surface_Conditions
-ORDER BY Total_Accidents DESC;
+WHERE number_of_vehicles > 5 AND road_surface_conditions IS NOT NULL
+GROUP BY road_surface_conditions
+ORDER BY total_accidents DESC;
 
 
-
-
-
-
-
---CTE to find out total number of accidents per each month
+-- CTE to find out the total number of accidents per each month
 WITH AccidentMonthCTE AS 
 (
     SELECT
-        MONTH([Accident_Date]) AS Month,
-        YEAR([Accident_Date]) AS Year,
-        COUNT(*) AS TotalAccidents
+        EXTRACT(YEAR FROM accident_date)::INT AS accident_year,
+        EXTRACT(MONTH FROM accident_date)::INT AS accident_month,
+        COUNT(*) AS total_accidents
     FROM accidents.dbo.road_data
-    GROUP BY YEAR([Accident_Date]),MONTH([Accident_Date])
+    GROUP BY accident_year, accident_month
 )
 
-SELECT Year, Month, TotalAccidents
+SELECT accident_year, accident_month, total_accidents
 FROM AccidentMonthCTE
-ORDER BY Year, Month;
+ORDER BY accident_year, accident_month;
